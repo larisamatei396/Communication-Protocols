@@ -1,0 +1,49 @@
+/* Matei Bianca-Larisa -> 322CB */
+
+lib.h
+Am implementat functia Init_Minikermit care genereaza si initializeaza o
+structura de tip mini-kermit. Functia CreateMsg primeste ca parametru un pachet
+mini-kermit si creeaza un mesaj (converteste dintr-o structura Mini_kermit
+intr-un msg). Functia Convert converteste din msg in pachet mini-kermit.
+
+ksender.c
+Am implementat o functie care aloca o structura de tip Send Init si o initiali-
+zeaza. Functia Send trimite un mesaj si asteapta un raspuns (ACK sau NAK). In
+caz de timeout sau daca primeste un pachet de tip NAK, retrimite pachetul. Un
+pachet poate fi trimis de maxim 3 ori. Daca s-a trimis de 3 ori si de fiecare
+data a primit NAK sau timeout, sau NAK si timeout, transmisia se incheie si
+afisez un mesaj corespunzator. Exista si cazul in care poate fi o combinatie
+de corupere si timeout. (ex: primeste de 2 ori NAK si o data timeout).
+In main am generat pentru inceput un pachet de tip Send Init si l-am transmis
+(am completat corespunzator campurile din structura Mini_kermit, am creat un
+mesaj folosind functia CreateMsg si l-am trimis folosind functia Send. Daca
+functia returneaza -1, adica am trimis de 3 ori pachetul si am primit NAK sau
+timeout, inchei transmisia iesind din main). Apoi am incrementat SEQ (a primit
+un pachet de tip ACK). Dupa aceea, cat timp am fisiere pe care trebuie sa le
+trimit (crt_file < argc), deschid fisierele, trimit pachet de tip File Header
+si incrementez SEQ. Cat timp pot citi din fisier, generez pachete de tip Date
+si le trimit. Pentru aceasta, am initializat o variabila offset cu 250 si
+citesc din fisier cate 250 de bytes (trimit pachete care au campul DATA
+complet). Ultima data, functia fread va citi mai putin, va trimite ultimul
+pachet si va iesi din while (offset != 250). Dupa aceea, trimit pachet de tip
+EOF si inchid fisierul. Dupa ce am trimis toate datele din toate fisierele,
+trimit un pachet de tip EOT. Pentru fiecare pachet trimis, incrementez SEQ.
+
+kreceiver.c
+Functia CheckMsg intoarce 1 daca trimite pachet de tip ACK si 0 in caz contrar.
+Am calculat crc-ul pentru pachetul primit si l-am comparat cu crc-ul din
+campul CHECK al pachetului primit. Daca sunt egale, trimit pachet de tip ACK,
+iar in caz contrar, de tip NAK. Dupa aceea, copiez datele pe care trebuie sa le
+trimit in pachetul minikermit pe care l-am alocat. Daca am primit un pachet de
+tip S si trimit un pachet de tip ACK, copiez campul DATA din pachetul primit,
+altfel campul DATA pe care il trimit in pachetul de tip ACK sau NAK este vid.
+Daca se trimite pachet de tip ACK, incrementez SEQ. In final, creez mesajul
+folosind functia CreateMsg si il trimit.
+In main am facut un while (cat timp nu a ajuns la finalul transmisiei, adica nu
+a primit un mesaj de tip EOT la care a raspuns cu ACK), astept mesaj (astept
+15s, adica maximul de 3 mesaje), il convertesc in pachet si afisez SEQ si tipul
+pachetului. Dupa aceea, apelez functia CheckMsg pentru a trimite raspuns (ACK
+sau NAK). Daca pachetul primit este de tip File Header, deschid un nou fisier
+pentru scriere (cu numele recv_numeFisierIntrare). Daca pachetul este de tip
+Date, scriu datele in fisierul deschis. Daca pachetul este de tip EOF, inchid
+fisierul.
